@@ -1,4 +1,4 @@
-# 478Chef
+# YesChef
 
 A native iOS food ordering app where users can both **order dishes** from others and **earn money** by listing and selling their own dishes.
 

@@ -1,0 +1,421 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AC000000000000000000AC01 /* YesChefApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB01 /* YesChefApp.swift */; };
+		AC000000000000000000AC02 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB02 /* ContentView.swift */; };
+		AC000000000000000000AC03 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB03 /* AppStore.swift */; };
+		AC000000000000000000AC04 /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB04 /* MenuView.swift */; };
+		AC000000000000000000AC05 /* CartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB05 /* CartView.swift */; };
+		AC000000000000000000AC06 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB06 /* AuthView.swift */; };
+		AC000000000000000000AC07 /* AddDishView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB07 /* AddDishView.swift */; };
+		AC000000000000000000AC08 /* EditDishView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB08 /* EditDishView.swift */; };
+		AC000000000000000000AC09 /* OrderHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB09 /* OrderHistoryView.swift */; };
+		AC000000000000000000AC10 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB10 /* ProfileView.swift */; };
+		AC000000000000000000AC11 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB11 /* Assets.xcassets */; };
+		AC000000000000000000AC14 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB14 /* GoogleService-Info.plist */; };
+		AC000000000000000000AC15 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000AB15 /* Preview Assets.xcassets */; };
+		AC000000000000000000AC21 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000BB02 /* FirebaseAuth */; };
+		AC000000000000000000AC22 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000BB03 /* FirebaseFirestore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AB000000000000000000AB01 /* YesChefApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YesChefApp.swift; sourceTree = "<group>"; };
+		AB000000000000000000AB02 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AB000000000000000000AB03 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		AB000000000000000000AB04 /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
+		AB000000000000000000AB05 /* CartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartView.swift; sourceTree = "<group>"; };
+		AB000000000000000000AB06 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		AB000000000000000000AB07 /* AddDishView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddDishView.swift; sourceTree = "<group>"; };
+		AB000000000000000000AB08 /* EditDishView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditDishView.swift; sourceTree = "<group>"; };
+		AB000000000000000000AB09 /* OrderHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderHistoryView.swift; sourceTree = "<group>"; };
+		AB000000000000000000AB10 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		AB000000000000000000AB11 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AB000000000000000000AB12 /* YesChef.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = YesChef.entitlements; sourceTree = "<group>"; };
+		AB000000000000000000AB13 /* YesChefDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = YesChefDebug.entitlements; sourceTree = "<group>"; };
+		AB000000000000000000AB14 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		AB000000000000000000AB15 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		AB000000000000000000AB16 /* YesChef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YesChef.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AD000000000000000000AD02 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC000000000000000000AC21 /* FirebaseAuth in Frameworks */,
+				AC000000000000000000AC22 /* FirebaseFirestore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AE000000000000000000AE01 = {
+			isa = PBXGroup;
+			children = (
+				AE000000000000000000AE02 /* YesChef */,
+				AE000000000000000000AE03 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AE000000000000000000AE02 /* YesChef */ = {
+			isa = PBXGroup;
+			children = (
+				AB000000000000000000AB01 /* YesChefApp.swift */,
+				AB000000000000000000AB02 /* ContentView.swift */,
+				AB000000000000000000AB03 /* AppStore.swift */,
+				AB000000000000000000AB04 /* MenuView.swift */,
+				AB000000000000000000AB05 /* CartView.swift */,
+				AB000000000000000000AB06 /* AuthView.swift */,
+				AB000000000000000000AB07 /* AddDishView.swift */,
+				AB000000000000000000AB08 /* EditDishView.swift */,
+				AB000000000000000000AB09 /* OrderHistoryView.swift */,
+				AB000000000000000000AB10 /* ProfileView.swift */,
+				AB000000000000000000AB11 /* Assets.xcassets */,
+				AB000000000000000000AB12 /* YesChef.entitlements */,
+				AB000000000000000000AB13 /* YesChefDebug.entitlements */,
+				AB000000000000000000AB14 /* GoogleService-Info.plist */,
+				AE000000000000000000AE04 /* Preview Content */,
+			);
+			path = YesChef;
+			sourceTree = "<group>";
+		};
+		AE000000000000000000AE03 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AB000000000000000000AB16 /* YesChef.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AE000000000000000000AE04 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				AB000000000000000000AB15 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA000000000000000000AA02 /* YesChef */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BA000000000000000000BA02 /* Build configuration list for PBXNativeTarget "YesChef" */;
+			buildPhases = (
+				AD000000000000000000AD01 /* Sources */,
+				AD000000000000000000AD02 /* Frameworks */,
+				AD000000000000000000AD03 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = YesChef;
+			packageProductDependencies = (
+				BB000000000000000000BB02 /* FirebaseAuth */,
+				BB000000000000000000BB03 /* FirebaseFirestore */,
+			);
+			productName = YesChef;
+			productReference = AB000000000000000000AB16 /* YesChef.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA000000000000000000AA01 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					AA000000000000000000AA02 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = BA000000000000000000BA01 /* Build configuration list for PBXProject "YesChef" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AE000000000000000000AE01;
+			packageReferences = (
+				BB000000000000000000BB01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
+			productRefGroup = AE000000000000000000AE03 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA000000000000000000AA02 /* YesChef */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AD000000000000000000AD03 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC000000000000000000AC15 /* Preview Assets.xcassets in Resources */,
+				AC000000000000000000AC11 /* Assets.xcassets in Resources */,
+				AC000000000000000000AC14 /* GoogleService-Info.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AD000000000000000000AD01 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC000000000000000000AC01 /* YesChefApp.swift in Sources */,
+				AC000000000000000000AC02 /* ContentView.swift in Sources */,
+				AC000000000000000000AC03 /* AppStore.swift in Sources */,
+				AC000000000000000000AC04 /* MenuView.swift in Sources */,
+				AC000000000000000000AC05 /* CartView.swift in Sources */,
+				AC000000000000000000AC06 /* AuthView.swift in Sources */,
+				AC000000000000000000AC07 /* AddDishView.swift in Sources */,
+				AC000000000000000000AC08 /* EditDishView.swift in Sources */,
+				AC000000000000000000AC09 /* OrderHistoryView.swift in Sources */,
+				AC000000000000000000AC10 /* ProfileView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AF000000000000000000AF01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AF000000000000000000AF02 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AF000000000000000000AF03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = YesChef/YesChefDebug.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MHL5T9KXXG;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lumiarc.478Chef;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AF000000000000000000AF04 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = YesChef/YesChef.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MHL5T9KXXG;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lumiarc.478Chef;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BA000000000000000000BA01 /* Build configuration list for PBXProject "YesChef" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF000000000000000000AF01 /* Debug */,
+				AF000000000000000000AF02 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BA000000000000000000BA02 /* Build configuration list for PBXNativeTarget "YesChef" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF000000000000000000AF03 /* Debug */,
+				AF000000000000000000AF04 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BB000000000000000000BB01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BB000000000000000000BB02 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB000000000000000000BB01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		BB000000000000000000BB03 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB000000000000000000BB01 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = AA000000000000000000AA01 /* Project object */;
+}

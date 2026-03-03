@@ -6,7 +6,6 @@ struct ContentView: View {
     var body: some View {
         Group {
             if store.isLoadingAuth {
-                // Shown briefly while Firebase checks persisted session
                 VStack(spacing: 16) {
                     Image(systemName: "fork.knife.circle.fill")
                         .font(.system(size: 64))
@@ -28,22 +27,45 @@ struct MainTabView: View {
     @EnvironmentObject var store: AppStore
 
     var body: some View {
-        TabView {
-            MenuView()
-                .tabItem { Label("Menu", systemImage: "fork.knife") }
+        if store.isMemberOfAnyMenu {
+            TabView {
+                MenuView()
+                    .tabItem { Label("Menu", systemImage: "fork.knife") }
 
-            CartView()
-                .tabItem { Label("Cart", systemImage: "cart.fill") }
-                .badge(store.cartCount)
+                CartView()
+                    .tabItem { Label("Cart", systemImage: "cart.fill") }
+                    .badge(store.cartCount)
 
-            ChefOrdersView()
-                .tabItem { Label("Orders", systemImage: "bell.fill") }
-                .badge(store.pendingOrderCount)
+                ChefOrdersView()
+                    .tabItem { Label("Orders", systemImage: "bell.fill") }
+                    .badge(store.pendingOrderCount)
 
-            ProfileView()
-                .tabItem { Label("Profile", systemImage: "person.fill") }
+                InvitationsView()
+                    .tabItem { Label("Invitations", systemImage: "envelope.fill") }
+                    .badge(store.pendingInvitationCount)
+
+                ProfileView()
+                    .tabItem { Label("Profile", systemImage: "person.fill") }
+            }
+            .tint(.orange)
+        } else {
+            // No menu membership yet — show Orders + Invitations + Profile.
+            // Chef orders are not menu-specific; a user may have incoming orders
+            // even before creating or joining a menu.
+            TabView {
+                ChefOrdersView()
+                    .tabItem { Label("Orders", systemImage: "bell.fill") }
+                    .badge(store.pendingOrderCount)
+
+                InvitationsView()
+                    .tabItem { Label("Invitations", systemImage: "envelope.fill") }
+                    .badge(store.pendingInvitationCount)
+
+                ProfileView()
+                    .tabItem { Label("Profile", systemImage: "person.fill") }
+            }
+            .tint(.orange)
         }
-        .tint(.orange)
     }
 }
 
@@ -129,7 +151,6 @@ private struct OrderCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
 
-            // Header
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("From \(order.buyerName)")
@@ -138,14 +159,13 @@ private struct OrderCard: View {
                         .font(.caption).foregroundColor(.secondary)
                 }
                 Spacer()
-                Text(String(format: "+$%.2f", order.total))
+                Text(order.total > 0 ? String(format: "+$%.2f", order.total) : "Self order")
                     .font(.headline)
                     .foregroundColor(isPending ? .green : .secondary)
             }
 
             Divider()
 
-            // Items
             ForEach(order.items) { item in
                 HStack {
                     Text(item.dishName).font(.subheadline)
@@ -159,13 +179,11 @@ private struct OrderCard: View {
                 }
             }
 
-            // Error
             if !errorMsg.isEmpty {
                 Label(errorMsg, systemImage: "exclamationmark.circle")
                     .font(.caption).foregroundColor(.red)
             }
 
-            // Action
             if isPending {
                 Button(action: markDone) {
                     HStack {

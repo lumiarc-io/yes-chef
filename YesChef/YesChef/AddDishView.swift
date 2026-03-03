@@ -4,6 +4,11 @@ struct AddDishView: View {
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) var dismiss
 
+    /// When true, shows a menu picker (used from Profile "My Dishes").
+    /// When false, uses the current active menu (used from MenuView).
+    var showMenuPicker: Bool = false
+
+    @State private var selectedMenuID: String = ""
     @State private var dishName       = ""
     @State private var priceText      = ""
     @State private var category       = "Main Dish"
@@ -18,12 +23,47 @@ struct AddDishView: View {
 
     private var price: Double? { Double(priceText) }
     private var isValid: Bool {
-        !dishName.trimmingCharacters(in: .whitespaces).isEmpty && (price ?? 0) > 0
+        !dishName.trimmingCharacters(in: .whitespaces).isEmpty
+        && (price ?? 0) > 0
+        && targetMenuID != nil
+    }
+
+    /// The menu ID to use for adding the dish.
+    private var targetMenuID: String? {
+        if showMenuPicker {
+            return selectedMenuID.isEmpty ? nil : selectedMenuID
+        }
+        return store.currentMenu?.id
+    }
+
+    private var targetMenuName: String? {
+        if showMenuPicker {
+            return store.myMenus.first(where: { $0.id == selectedMenuID })?.name
+        }
+        return store.currentMenu?.name
     }
 
     var body: some View {
         NavigationView {
             Form {
+                if showMenuPicker {
+                    Section("Menu") {
+                        Picker("Add to", selection: $selectedMenuID) {
+                            Text("Select a menu").tag("")
+                            ForEach(store.myMenus) { menu in
+                                Text(menu.name).tag(menu.id)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                } else if let menuName = store.currentMenu?.name {
+                    Section {
+                        Label("Adding to: \(menuName)", systemImage: "fork.knife.circle.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.orange)
+                    }
+                }
+
                 Section("Dish Info") {
                     TextField("Name (e.g. Margherita Pizza)", text: $dishName)
                         .focused($focusedField, equals: .name)
@@ -44,10 +84,9 @@ struct AddDishView: View {
                     .pickerStyle(.menu)
                 }
 
-                Section("📷 Photo") {
+                Section("Photo") {
                     Button { focusedField = nil; showPicker = true } label: {
                         HStack(spacing: 16) {
-                            // Preview thumbnail with crop result
                             Group {
                                 if let img = selectedImage {
                                     Image(uiImage: img)
@@ -79,7 +118,6 @@ struct AddDishView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Clear button shown only when photo is selected
                     if selectedImage != nil {
                         Button(role: .destructive) { selectedImage = nil } label: {
                             Label("Remove Photo", systemImage: "trash")
@@ -139,6 +177,12 @@ struct AddDishView: View {
             .sheet(isPresented: $showPicker) {
                 CroppableImagePicker(image: $selectedImage)
             }
+            .onAppear {
+                // Pre-select the current menu if using picker
+                if showMenuPicker, let id = store.currentMenu?.id {
+                    selectedMenuID = id
+                }
+            }
         }
     }
 
@@ -150,7 +194,8 @@ struct AddDishView: View {
         errorMsg    = ""
         isUploading = true
 
-        store.addDish(name: trimmed, price: p, image: selectedImage, category: category) { ok, msg in
+        store.addDish(name: trimmed, price: p, image: selectedImage, category: category,
+                      menuID: targetMenuID) { ok, msg in
             isUploading = false
             if ok {
                 dishName      = ""

@@ -12,6 +12,7 @@ struct AppUser: Identifiable, Equatable {
     var email: String
     var balance: Double
     var profilePhotoURL: String?
+    var defaultMenuID: String?
 }
 
 let dishCategories = ["Main Dish", "Small Plates", "Noodle & Rice", "Dessert", "Drink"]
@@ -24,6 +25,7 @@ struct Dish: Identifiable {
     var ownerID: String
     var ownerName: String
     var category: String
+    var menuID: String
 
     init?(from doc: QueryDocumentSnapshot) {
         let d = doc.data()
@@ -31,21 +33,21 @@ struct Dish: Identifiable {
               let ownerID   = d["ownerID"]   as? String,
               let ownerName = d["ownerName"] as? String
         else { return nil }
-        // Firestore may return numbers as NSNumber backed by Int64 or Double depending
-        // on how the value was stored. Using NSNumber bridging handles both safely.
         let price = (d["price"] as? NSNumber)?.doubleValue ?? 0
         guard price > 0 else { return nil }
         self.id = doc.documentID; self.name = name; self.price = price
         self.imageURL = d["imageURL"] as? String
         self.ownerID = ownerID; self.ownerName = ownerName
         self.category = d["category"] as? String ?? "Main Dish"
+        self.menuID = d["menuID"] as? String ?? ""
     }
 
     init(id: String, name: String, price: Double, imageURL: String?,
-         ownerID: String, ownerName: String, category: String = "Main Dish") {
+         ownerID: String, ownerName: String, category: String = "Main Dish",
+         menuID: String) {
         self.id = id; self.name = name; self.price = price
         self.imageURL = imageURL; self.ownerID = ownerID; self.ownerName = ownerName
-        self.category = category
+        self.category = category; self.menuID = menuID
     }
 }
 
@@ -74,19 +76,15 @@ struct OrderLineItem {
 }
 
 // MARK: - Chef Order Models
-//
-// Schema: one `orders` document per (chef × checkout).
-// Chef listener: whereField("chefID", isEqualTo: uid)  — simple equality, no composite index.
-// Buyer listener: whereField("buyerID", isEqualTo: uid) — unchanged, still works.
 
 struct PendingOrder: Identifiable {
     let id: String
-    let chefID: String      // the chef who must fulfil this order
+    let chefID: String
     let buyerID: String
     let buyerName: String
     let items: [PendingOrderItem]
-    let total: Double       // amount to be credited to chefID on completion
-    var status: String      // "pending" | "completed"
+    let total: Double
+    var status: String
     let createdAt: Date
 }
 
@@ -106,20 +104,83 @@ struct TopUpRecord: Identifiable {
     var date: Date
 }
 
+// MARK: - Menu Model
+
+struct Menu: Identifiable, Equatable {
+    var id: String
+    var name: String
+    var creatorID: String
+    var memberIDs: [String]
+    var createdAt: Date
+
+    init?(from doc: QueryDocumentSnapshot) {
+        let d = doc.data(with: .estimate)
+        guard let name      = d["name"]      as? String,
+              let creatorID = d["creatorID"] as? String,
+              let memberIDs = d["memberIDs"] as? [String]
+        else { return nil }
+        self.id        = doc.documentID
+        self.name      = name
+        self.creatorID = creatorID
+        self.memberIDs = memberIDs
+        self.createdAt = (d["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+    }
+}
+
+// MARK: - Invitation Model
+
+struct Invitation: Identifiable {
+    var id: String
+    var menuID: String
+    var menuName: String
+    var fromUserID: String
+    var fromUsername: String
+    var toUserID: String
+    var toUsername: String
+    var status: String
+    var createdAt: Date
+
+    init?(from doc: QueryDocumentSnapshot) {
+        let d = doc.data(with: .estimate)
+        guard let menuID       = d["menuID"]       as? String,
+              let menuName     = d["menuName"]     as? String,
+              let fromUserID   = d["fromUserID"]   as? String,
+              let fromUsername = d["fromUsername"] as? String,
+              let toUserID     = d["toUserID"]     as? String,
+              let toUsername   = d["toUsername"]   as? String,
+              let status       = d["status"]       as? String
+        else { return nil }
+        self.id           = doc.documentID
+        self.menuID       = menuID
+        self.menuName     = menuName
+        self.fromUserID   = fromUserID
+        self.fromUsername = fromUsername
+        self.toUserID     = toUserID
+        self.toUsername   = toUsername
+        self.status       = status
+        self.createdAt    = (d["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+    }
+}
+
 // MARK: - AppStore
 
 class AppStore: ObservableObject {
     @Published var currentUser: AppUser?
-    @Published var dishes: [Dish]              = []
-    @Published var cartItems: [CartItem]       = []
+    @Published var dishes: [Dish]                = []
+    @Published var myAllDishes: [Dish]           = []
+    @Published var cartItems: [CartItem]         = []
     @Published var orderHistory: [OrderRecord]   = []
     @Published var topUpHistory: [TopUpRecord]   = []
-    @Published var pendingOrders: [PendingOrder] = []   // orders awaiting this chef's confirmation
+    @Published var pendingOrders: [PendingOrder] = []
+    @Published var myMenus: [Menu]               = []
+    @Published var currentMenu: Menu?
+    @Published var pendingInvitations: [Invitation] = []
     @Published var isLoadingAuth                 = true
     @Published var needsUsername                 = false
 
     private let db = Firestore.firestore()
     private var listeners: [ListenerRegistration] = []
+    private var dishesListener: ListenerRegistration?
 
     init() {
         Auth.auth().addStateDidChangeListener { [weak self] _, firebaseUser in
@@ -128,14 +189,18 @@ class AppStore: ObservableObject {
                     self?.startListeners(uid: uid)
                 } else {
                     self?.stopListeners()
-                    self?.currentUser    = nil
-                    self?.dishes         = []
-                    self?.cartItems      = []
-                    self?.orderHistory   = []
-                    self?.topUpHistory   = []
-                    self?.pendingOrders  = []
-                    self?.needsUsername  = false
-                    self?.isLoadingAuth  = false
+                    self?.currentUser        = nil
+                    self?.dishes             = []
+                    self?.myAllDishes        = []
+                    self?.cartItems          = []
+                    self?.orderHistory       = []
+                    self?.topUpHistory       = []
+                    self?.pendingOrders      = []
+                    self?.myMenus            = []
+                    self?.currentMenu        = nil
+                    self?.pendingInvitations = []
+                    self?.needsUsername      = false
+                    self?.isLoadingAuth      = false
                 }
             }
         }
@@ -143,55 +208,90 @@ class AppStore: ObservableObject {
 
     // MARK: Computed
 
-    var isLoggedIn: Bool  { currentUser != nil }
-    var cartTotal: Double { cartItems.reduce(0) { $0 + $1.subtotal } }
-    var cartCount: Int    { cartItems.reduce(0) { $0 + $1.quantity } }
+    var isLoggedIn: Bool            { currentUser != nil }
+    var cartTotal: Double           { cartItems.reduce(0) { $0 + $1.subtotal } }
+    var cartCount: Int              { cartItems.reduce(0) { $0 + $1.quantity } }
+    var isMemberOfAnyMenu: Bool     { !myMenus.isEmpty }
+    var pendingInvitationCount: Int { pendingInvitations.count }
+    var ownedMenuCount: Int {
+        guard let uid = currentUser?.id else { return 0 }
+        return myMenus.filter { $0.creatorID == uid }.count
+    }
 
     // MARK: - Listeners
 
     private func startListeners(uid: String) {
         stopListeners()
 
-        // Current user — updates in real-time when chefs earn money
+        // User doc — balance, username, defaultMenuID
         let userListener = db.collection("users").document(uid)
             .addSnapshotListener { [weak self] snap, _ in
                 DispatchQueue.main.async {
                     if let d = snap?.data() {
+                        let defaultMenuID = d["defaultMenuID"] as? String
                         self?.currentUser = AppUser(
-                            id: uid,
+                            id:              uid,
                             username:        d["username"]        as? String ?? "",
                             email:           d["email"]           as? String ?? "",
-                            balance:         d["balance"]         as? Double ?? 0,
-                            profilePhotoURL: d["profilePhotoURL"] as? String
+                            balance:         (d["balance"] as? NSNumber)?.doubleValue ?? 0,
+                            profilePhotoURL: d["profilePhotoURL"] as? String,
+                            defaultMenuID:   defaultMenuID
                         )
                         self?.needsUsername = false
+                        // Switch to default menu if loaded after the menus listener
+                        if let defaultID = defaultMenuID,
+                           self?.currentMenu?.id != defaultID,
+                           let menu = self?.myMenus.first(where: { $0.id == defaultID }) {
+                            self?.switchMenu(menu)
+                        }
                     }
                     self?.isLoadingAuth = false
                 }
             }
 
-        // All dishes — menu syncs across all devices
-        let dishesListener = db.collection("dishes")
+        // Menus where user is a member
+        let menusListener = db.collection("menus")
+            .whereField("memberIDs", arrayContains: uid)
             .addSnapshotListener { [weak self] snap, _ in
                 guard let snap = snap else { return }
                 DispatchQueue.main.async {
-                    self?.dishes = snap.documents.compactMap { Dish(from: $0) }
+                    let menus = snap.documents.compactMap { Menu(from: $0) }
+                        .sorted { $0.createdAt < $1.createdAt }
+                    self?.myMenus = menus
+
+                    if let current = self?.currentMenu,
+                       let updated = menus.first(where: { $0.id == current.id }) {
+                        // Keep currentMenu in sync with live data
+                        self?.currentMenu = updated
+                    } else if self?.currentMenu == nil, !menus.isEmpty {
+                        // First load: pick default or first menu
+                        let defaultID = self?.currentUser?.defaultMenuID
+                        let target = menus.first(where: { $0.id == defaultID }) ?? menus.first
+                        if let menu = target { self?.switchMenu(menu) }
+                    }
                 }
             }
 
-        // Order history for this user (sorted client-side, no composite index needed)
+        // Invitations addressed to this user
+        let invitationsListener = db.collection("invitations")
+            .whereField("toUserID", isEqualTo: uid)
+            .addSnapshotListener { [weak self] snap, _ in
+                guard let snap = snap else { return }
+                DispatchQueue.main.async {
+                    self?.pendingInvitations = snap.documents
+                        .compactMap { Invitation(from: $0) }
+                        .filter { $0.status == "pending" }
+                        .sorted { $0.createdAt > $1.createdAt }
+                }
+            }
+
+        // Order history for this user as buyer
         let ordersListener = db.collection("orders")
             .whereField("buyerID", isEqualTo: uid)
-            .addSnapshotListener { [weak self] snap, error in
-                if let error = error {
-                    print("[OrderHistory] Listener error: \(error.localizedDescription)")
-                    return
-                }
+            .addSnapshotListener { [weak self] snap, _ in
                 guard let snap = snap else { return }
                 DispatchQueue.main.async {
                     let records: [OrderRecord] = snap.documents.compactMap { doc in
-                        // .estimate resolves pending FieldValue.serverTimestamp() to a local
-                        // clock estimate so newly placed orders appear immediately.
                         let d = doc.data(with: .estimate)
                         let total = (d["total"] as? NSNumber)?.doubleValue ?? 0
                         guard total > 0,
@@ -214,16 +314,10 @@ class AppStore: ObservableObject {
         // Top-up history for this user
         let topupsListener = db.collection("topups")
             .whereField("userID", isEqualTo: uid)
-            .addSnapshotListener { [weak self] snap, error in
-                if let error = error {
-                    print("[TopUps] Listener error — check Firestore rules: \(error.localizedDescription)")
-                    return
-                }
+            .addSnapshotListener { [weak self] snap, _ in
                 guard let snap = snap else { return }
                 DispatchQueue.main.async {
                     let records: [TopUpRecord] = snap.documents.compactMap { doc in
-                        // Use .estimate so FieldValue.serverTimestamp() pending writes still
-                        // produce a valid Timestamp (local clock estimate) instead of nil.
                         let d = doc.data(with: .estimate)
                         let amount = (d["amount"] as? NSNumber)?.doubleValue
                                   ?? d["amount"] as? Double ?? 0
@@ -236,47 +330,27 @@ class AppStore: ObservableObject {
                 }
             }
 
-        // Chef's incoming orders — one document per chef per checkout.
-        // Simple equality query: no composite index, no arrayContains complexity.
+        // Chef's incoming orders
         let chefOrdersListener = db.collection("orders")
             .whereField("chefID", isEqualTo: uid)
-            .addSnapshotListener { [weak self] snap, error in
-                if let error = error {
-                    print("[ChefOrders] ❌ Listener error — check Firestore rules: \(error.localizedDescription)")
-                    return
-                }
-                guard let snap = snap else {
-                    print("[ChefOrders] Snapshot was nil")
-                    return
-                }
-                print("[ChefOrders] ✅ Received \(snap.documents.count) document(s) for chefID=\(uid)")
+            .addSnapshotListener { [weak self] snap, _ in
+                guard let snap = snap else { return }
                 DispatchQueue.main.async {
                     self?.pendingOrders = snap.documents.compactMap { doc -> PendingOrder? in
-                        // .estimate: resolves pending FieldValue.serverTimestamp() locally
-                        // so orders appear immediately after checkout rather than waiting
-                        // for the Firestore server round-trip.
                         let d = doc.data(with: .estimate)
-
                         guard let chefID    = d["chefID"]    as? String,
                               let buyerID   = d["buyerID"]   as? String,
                               let buyerName = d["buyerName"] as? String
-                        else {
-                            print("[ChefOrders] ⚠️ Dropped \(doc.documentID): missing string fields. data=\(d)")
-                            return nil
-                        }
-                        // NSNumber bridging handles both Int64 and Double Firestore types.
+                        else { return nil }
                         let total     = (d["total"]  as? NSNumber)?.doubleValue ?? 0
                         let status    =  d["status"] as? String ?? "pending"
                         let createdAt = (d["createdAt"] as? Timestamp)?.dateValue() ?? Date()
-
                         let items = (d["items"] as? [[String: Any]] ?? []).compactMap { item -> PendingOrderItem? in
-                            guard let dn  = item["dishName"] as? String else { return nil }
+                            guard let dn = item["dishName"] as? String else { return nil }
                             let qty   = (item["quantity"] as? NSNumber)?.intValue    ?? 1
                             let price = (item["price"]    as? NSNumber)?.doubleValue ?? 0
                             return PendingOrderItem(dishName: dn, quantity: qty, price: price)
                         }
-
-                        print("[ChefOrders]   doc=\(doc.documentID) status=\(status) total=\(total) buyer=\(buyerName)")
                         return PendingOrder(id: doc.documentID, chefID: chefID,
                                             buyerID: buyerID, buyerName: buyerName,
                                             items: items, total: total,
@@ -285,17 +359,284 @@ class AppStore: ObservableObject {
                 }
             }
 
-        listeners = [userListener, dishesListener, ordersListener, topupsListener, chefOrdersListener]
+        // All dishes owned by this user (across all menus) — for Profile "My Dishes"
+        let myDishesListener = db.collection("dishes")
+            .whereField("ownerID", isEqualTo: uid)
+            .addSnapshotListener { [weak self] snap, _ in
+                guard let snap = snap else { return }
+                DispatchQueue.main.async {
+                    self?.myAllDishes = snap.documents.compactMap { Dish(from: $0) }
+                }
+            }
+
+        listeners = [userListener, menusListener, invitationsListener,
+                     ordersListener, topupsListener, chefOrdersListener,
+                     myDishesListener]
     }
 
-    /// Orders where this chef still needs to tap Done — drives the tab badge.
+    // Switch to a different menu — clears cart and restarts the dishes listener.
+    func switchMenu(_ menu: Menu) {
+        guard currentMenu?.id != menu.id else { return }
+        currentMenu = menu
+        cartItems.removeAll()
+        startDishesListener(menuID: menu.id)
+    }
+
+    private func startDishesListener(menuID: String) {
+        dishesListener?.remove()
+        dishesListener = db.collection("dishes")
+            .whereField("menuID", isEqualTo: menuID)
+            .addSnapshotListener { [weak self] snap, error in
+                if let error = error {
+                    print("[Dishes] listener error: \(error.localizedDescription)")
+                    return
+                }
+                guard let snap = snap else { return }
+                DispatchQueue.main.async {
+                    self?.dishes = snap.documents.compactMap { Dish(from: $0) }
+                    print("[Dishes] loaded \(self?.dishes.count ?? 0) for menu \(menuID)")
+                }
+            }
+    }
+
     var pendingOrderCount: Int {
         pendingOrders.filter { $0.status == "pending" }.count
     }
 
     private func stopListeners() {
         listeners.forEach { $0.remove() }
+        dishesListener?.remove()
+        dishesListener = nil
         listeners = []
+    }
+
+    // MARK: - Menu Management
+
+    func createMenu(name: String, completion: @escaping (Bool, String) -> Void) {
+        guard let user = currentUser else { return }
+        guard ownedMenuCount < 3 else {
+            completion(false, "You can only create up to 3 menus."); return
+        }
+        db.collection("menus").addDocument(data: [
+            "name":      name,
+            "creatorID": user.id,
+            "memberIDs": [user.id],
+            "createdAt": FieldValue.serverTimestamp()
+        ]) { error in
+            DispatchQueue.main.async {
+                completion(error == nil, error?.localizedDescription ?? "")
+            }
+        }
+    }
+
+    func setDefaultMenu(_ menu: Menu, completion: @escaping (Bool, String) -> Void) {
+        guard let uid = currentUser?.id else { return }
+        db.collection("users").document(uid)
+            .updateData(["defaultMenuID": menu.id]) { error in
+                DispatchQueue.main.async {
+                    completion(error == nil, error?.localizedDescription ?? "")
+                }
+            }
+    }
+
+    func updateMenuName(_ menu: Menu, name: String, completion: @escaping (Bool, String) -> Void) {
+        guard let uid = currentUser?.id, uid == menu.creatorID else {
+            completion(false, "Only the creator can rename this menu."); return
+        }
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { completion(false, "Name cannot be empty."); return }
+        db.collection("menus").document(menu.id)
+            .updateData(["name": trimmed]) { error in
+                DispatchQueue.main.async {
+                    completion(error == nil, error?.localizedDescription ?? "")
+                }
+            }
+    }
+
+    func deleteMenu(_ menu: Menu, completion: @escaping (Bool, String) -> Void) {
+        guard let uid = currentUser?.id, uid == menu.creatorID else {
+            completion(false, "Only the creator can delete this menu."); return
+        }
+
+        // 1. Unlink all dishes from this menu (set menuID to "")
+        db.collection("dishes").whereField("menuID", isEqualTo: menu.id)
+            .getDocuments { [weak self] snap, _ in
+                guard let self = self else { return }
+                let batch = self.db.batch()
+
+                for doc in snap?.documents ?? [] {
+                    batch.updateData(["menuID": ""], forDocument: doc.reference)
+                }
+
+                // 2. Delete the menu document
+                batch.deleteDocument(self.db.collection("menus").document(menu.id))
+
+                batch.commit { error in
+                    DispatchQueue.main.async {
+                        if let error = error {
+                            completion(false, error.localizedDescription); return
+                        }
+                        // 3. Clear defaultMenuID if this was the default
+                        if self.currentUser?.defaultMenuID == menu.id {
+                            self.db.collection("users").document(uid)
+                                .updateData(["defaultMenuID": FieldValue.delete()])
+                        }
+                        // 4. Switch away from deleted menu
+                        if self.currentMenu?.id == menu.id {
+                            self.currentMenu = nil
+                            self.dishes = []
+                            self.dishesListener?.remove()
+                            self.dishesListener = nil
+                            // Pick another menu if available
+                            if let next = self.myMenus.first(where: { $0.id != menu.id }) {
+                                self.switchMenu(next)
+                            }
+                        }
+                        completion(true, "")
+                    }
+                }
+            }
+    }
+
+    func removeMember(uid memberUID: String, from menu: Menu,
+                      completion: @escaping (Bool, String) -> Void) {
+        guard let uid = currentUser?.id, uid == menu.creatorID else {
+            completion(false, "Only the creator can remove members."); return
+        }
+        guard memberUID != menu.creatorID else {
+            completion(false, "Cannot remove the creator."); return
+        }
+
+        // 1. Remove member from the menu's memberIDs
+        let menuRef = db.collection("menus").document(menu.id)
+
+        // 2. Delete that member's dishes from this menu
+        db.collection("dishes")
+            .whereField("menuID", isEqualTo: menu.id)
+            .whereField("ownerID", isEqualTo: memberUID)
+            .getDocuments { [weak self] snap, _ in
+                guard let self = self else { return }
+                let batch = self.db.batch()
+
+                batch.updateData(["memberIDs": FieldValue.arrayRemove([memberUID])],
+                                 forDocument: menuRef)
+
+                for doc in snap?.documents ?? [] {
+                    batch.deleteDocument(doc.reference)
+                }
+
+                batch.commit { error in
+                    DispatchQueue.main.async {
+                        completion(error == nil, error?.localizedDescription ?? "")
+                    }
+                }
+            }
+    }
+
+    func loadMemberUsernames(for memberIDs: [String],
+                             completion: @escaping ([String: String]) -> Void) {
+        guard !memberIDs.isEmpty else { completion([:]); return }
+        // Firestore 'in' query supports up to 30 values
+        let chunks = stride(from: 0, to: memberIDs.count, by: 30).map {
+            Array(memberIDs[$0..<min($0 + 30, memberIDs.count)])
+        }
+        var result: [String: String] = [:]
+        let group = DispatchGroup()
+        for chunk in chunks {
+            group.enter()
+            db.collection("users").whereField(FieldPath.documentID(), in: chunk)
+                .getDocuments { snap, _ in
+                    for doc in snap?.documents ?? [] {
+                        let username = doc.data()["username"] as? String ?? doc.documentID
+                        result[doc.documentID] = username
+                    }
+                    group.leave()
+                }
+        }
+        group.notify(queue: .main) { completion(result) }
+    }
+
+    // MARK: - Invitations
+
+    func inviteUser(username: String, to menu: Menu,
+                    completion: @escaping (Bool, String) -> Void) {
+        guard let user = currentUser else { return }
+        guard menu.creatorID == user.id else {
+            completion(false, "Only the menu creator can invite."); return
+        }
+        // 1. Look up invitee by username
+        db.collection("users").whereField("username", isEqualTo: username)
+            .getDocuments { [weak self] snap, _ in
+                guard let doc = snap?.documents.first else {
+                    DispatchQueue.main.async { completion(false, "User '\(username)' not found.") }
+                    return
+                }
+                let inviteeID = doc.documentID
+                guard inviteeID != user.id else {
+                    DispatchQueue.main.async { completion(false, "You can't invite yourself.") }
+                    return
+                }
+                guard !menu.memberIDs.contains(inviteeID) else {
+                    DispatchQueue.main.async { completion(false, "\(username) is already a member.") }
+                    return
+                }
+                let inviteeUsername = doc.data()["username"] as? String ?? username
+                // 2. Check for existing pending invitation (client-side filter)
+                self?.db.collection("invitations")
+                    .whereField("menuID",   isEqualTo: menu.id)
+                    .whereField("toUserID", isEqualTo: inviteeID)
+                    .getDocuments { snap, _ in
+                        let hasPending = snap?.documents
+                            .compactMap { Invitation(from: $0) }
+                            .contains(where: { $0.status == "pending" }) ?? false
+                        if hasPending {
+                            DispatchQueue.main.async {
+                                completion(false, "Invitation already sent to \(username).")
+                            }
+                            return
+                        }
+                        // 3. Create invitation
+                        self?.db.collection("invitations").addDocument(data: [
+                            "menuID":       menu.id,
+                            "menuName":     menu.name,
+                            "fromUserID":   user.id,
+                            "fromUsername": user.username,
+                            "toUserID":     inviteeID,
+                            "toUsername":   inviteeUsername,
+                            "status":       "pending",
+                            "createdAt":    FieldValue.serverTimestamp()
+                        ]) { error in
+                            DispatchQueue.main.async {
+                                completion(error == nil, error?.localizedDescription ?? "")
+                            }
+                        }
+                    }
+            }
+    }
+
+    func acceptInvitation(_ invitation: Invitation, completion: @escaping (Bool, String) -> Void) {
+        guard let uid = currentUser?.id else { return }
+        let menuRef = db.collection("menus").document(invitation.menuID)
+        let invRef  = db.collection("invitations").document(invitation.id)
+        db.runTransaction({ transaction, errorPointer in
+            transaction.updateData(["memberIDs": FieldValue.arrayUnion([uid])],
+                                   forDocument: menuRef)
+            transaction.updateData(["status": "accepted"], forDocument: invRef)
+            return nil
+        }) { _, error in
+            DispatchQueue.main.async {
+                completion(error == nil, error?.localizedDescription ?? "")
+            }
+        }
+    }
+
+    func declineInvitation(_ invitation: Invitation, completion: @escaping (Bool, String) -> Void) {
+        db.collection("invitations").document(invitation.id)
+            .updateData(["status": "declined"]) { error in
+                DispatchQueue.main.async {
+                    completion(error == nil, error?.localizedDescription ?? "")
+                }
+            }
     }
 
     // MARK: - Sign in with Apple
@@ -404,11 +745,7 @@ class AppStore: ObservableObject {
                     "userID":    user.id,
                     "amount":    amount,
                     "createdAt": FieldValue.serverTimestamp()
-                ]) { writeError in
-                    if let writeError = writeError {
-                        print("[TopUps] Failed to write top-up record — check Firestore rules: \(writeError.localizedDescription)")
-                    }
-                }
+                ])
                 completion(true, "")
             }
         }
@@ -416,7 +753,6 @@ class AppStore: ObservableObject {
 
     // MARK: - Dish Management
 
-    // Resize image to max dimension before encoding to keep Firestore doc size small
     private func prepareImageBase64(_ image: UIImage) -> String? {
         let maxDimension: CGFloat = 800
         let size = image.size
@@ -431,8 +767,13 @@ class AppStore: ObservableObject {
     }
 
     func addDish(name: String, price: Double, image: UIImage?, category: String,
+                 menuID: String? = nil,
                  completion: @escaping (Bool, String) -> Void) {
-        guard let user = currentUser else { return }
+        guard let user = currentUser else { completion(false, "Not logged in."); return }
+        let targetMenuID = menuID ?? currentMenu?.id
+        guard let targetMenuID, !targetMenuID.isEmpty else {
+            completion(false, "No menu selected. Pick a menu first."); return
+        }
         let dishID = UUID().uuidString
 
         func write(imageURL: String?) {
@@ -440,6 +781,7 @@ class AppStore: ObservableObject {
                 "name": name, "price": price, "imageURL": imageURL as Any,
                 "ownerID": user.id, "ownerName": user.username,
                 "category": category,
+                "menuID": targetMenuID,
                 "createdAt": FieldValue.serverTimestamp()
             ]
             db.collection("dishes").document(dishID).setData(data) { error in
@@ -447,14 +789,29 @@ class AppStore: ObservableObject {
             }
         }
 
-        if let image {
-            write(imageURL: prepareImageBase64(image))
-        } else {
-            write(imageURL: nil)
-        }
+        if let image { write(imageURL: prepareImageBase64(image)) }
+        else { write(imageURL: nil) }
     }
 
-    /// Update an existing dish. Pass `newImage` only if the photo changed; nil keeps the existing one.
+    func moveDish(_ dish: Dish, toMenuID: String, completion: @escaping (Bool, String) -> Void) {
+        guard let uid = currentUser?.id, uid == dish.ownerID else {
+            completion(false, "You can only move your own dishes."); return
+        }
+        db.collection("dishes").document(dish.id)
+            .updateData(["menuID": toMenuID]) { error in
+                DispatchQueue.main.async {
+                    completion(error == nil, error?.localizedDescription ?? "")
+                }
+            }
+    }
+
+    /// Any menu member can remove a dish from the menu (unlinks it; dish stays under the chef).
+    func removeDishFromMenu(_ dish: Dish) {
+        db.collection("dishes").document(dish.id)
+            .updateData(["menuID": ""])
+        cartItems.removeAll { $0.dish.id == dish.id }
+    }
+
     func updateDish(_ dish: Dish, name: String, price: Double, newImage: UIImage?, category: String,
                     completion: @escaping (Bool, String) -> Void) {
         func write(imageURL: String?) {
@@ -465,11 +822,8 @@ class AppStore: ObservableObject {
             }
         }
 
-        if let newImage {
-            write(imageURL: prepareImageBase64(newImage))
-        } else {
-            write(imageURL: nil)
-        }
+        if let newImage { write(imageURL: prepareImageBase64(newImage)) }
+        else { write(imageURL: nil) }
     }
 
     func deleteDish(_ dish: Dish) {
@@ -500,56 +854,35 @@ class AppStore: ObservableObject {
     // MARK: - Checkout
 
     func checkout(completion: @escaping (Bool, String, Double) -> Void) {
-        guard let buyer = currentUser else {
-            print("[Checkout] ❌ currentUser is nil — not logged in")
-            return
-        }
+        guard let buyer = currentUser else { return }
         let total = cartTotal
-        guard total > 0 else {
-            print("[Checkout] ❌ cartTotal is 0 — nothing to purchase")
-            return
-        }
+        guard total > 0 else { return }
 
-        // Buyer does not pay for their own dishes.
         let selfEarned = cartItems
             .filter { $0.dish.ownerID == buyer.id }
             .reduce(0.0) { $0 + $1.subtotal }
         let effectiveDeduction = total - selfEarned
 
-        // Group external items by chef. Own dishes are skipped — no order needed.
+        // Group all items by chef (including buyer's own dishes for order visibility)
         var itemsByChef: [String: [CartItem]] = [:]
-        for item in cartItems where item.dish.ownerID != buyer.id {
+        for item in cartItems {
             itemsByChef[item.dish.ownerID, default: []].append(item)
         }
 
-        print("[Checkout] buyerID=\(buyer.id) total=\(total) effectiveDeduction=\(effectiveDeduction)")
-        print("[Checkout] itemsByChef keys=\(itemsByChef.keys.sorted())")
-
         let buyerRef  = db.collection("users").document(buyer.id)
-        // Pre-generate one DocumentReference per chef so we can write inside the transaction.
         let orderRefs: [String: DocumentReference] = itemsByChef.mapValues { _ in
             db.collection("orders").document()
         }
 
-        // ── Single atomic transaction ──────────────────────────────────────────
-        // Reads buyer balance, checks funds, deducts, creates one order doc per
-        // chef — all in one commit. Any failure rolls back everything.
         db.runTransaction({ transaction, errorPointer in
 
             let buyerSnap: DocumentSnapshot
             do { buyerSnap = try transaction.getDocument(buyerRef) }
-            catch let e as NSError {
-                print("[Checkout] ❌ Failed to read buyer doc: \(e.localizedDescription)")
-                errorPointer?.pointee = e; return nil
-            }
+            catch let e as NSError { errorPointer?.pointee = e; return nil }
 
-            // NSNumber bridging: Firestore may return the balance as Int64 or Double.
             let buyerBalance = (buyerSnap.data()?["balance"] as? NSNumber)?.doubleValue ?? -1
-            print("[Checkout] buyerBalance=\(buyerBalance) effectiveDeduction=\(effectiveDeduction)")
-
             guard buyerBalance >= 0, buyerBalance >= effectiveDeduction else {
                 let msg = buyerBalance < 0 ? "Could not read balance" : "Insufficient funds"
-                print("[Checkout] ❌ Guard failed: \(msg)")
                 errorPointer?.pointee = NSError(
                     domain: "com.478chef", code: 1,
                     userInfo: [NSLocalizedDescriptionKey: msg])
@@ -563,13 +896,14 @@ class AppStore: ObservableObject {
 
             for (chefID, chefItems) in itemsByChef {
                 guard let ref = orderRefs[chefID] else { continue }
-                let chefTotal = chefItems.reduce(0.0) { $0 + $1.subtotal }
+                // Self-orders carry total=0 — buyer was never charged, chef not credited
+                let chefTotal = chefID == buyer.id ? 0.0 : chefItems.reduce(0.0) { $0 + $1.subtotal }
                 let itemData: [[String: Any]] = chefItems.map { item in [
                     "dishName": item.dish.name,
+                    "chefName": item.dish.ownerName,
                     "quantity": item.quantity,
                     "price":    item.dish.price
                 ]}
-                print("[Checkout] Writing order for chefID=\(chefID) total=\(chefTotal) ref=\(ref.documentID)")
                 transaction.setData([
                     "chefID":    chefID,
                     "buyerID":   buyer.id,
@@ -586,11 +920,9 @@ class AppStore: ObservableObject {
         }) { [weak self] _, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    print("[Checkout] ❌ Transaction failed: \(error.localizedDescription)")
                     completion(false, error.localizedDescription, 0)
                     return
                 }
-                print("[Checkout] ✅ Transaction committed. Orders created: \(orderRefs.count)")
                 self?.cartItems.removeAll()
                 completion(true, "", effectiveDeduction)
             }
@@ -599,23 +931,13 @@ class AppStore: ObservableObject {
 
     // MARK: - Chef Confirmation
 
-    /// Mark a chef order as done, credit the chef's balance, and write a ledger entry.
-    ///
-    /// Guarantees:
-    /// - **Idempotent**: tapping Done twice never double-credits.
-    ///   `payoutLedger/{orderID}` is the idempotency key — one credit per order.
-    /// - **Atomic**: status update + balance credit + ledger write in one transaction.
-    /// - **Auth-scoped**: verifies the signed-in user is the order's chef.
     func markDone(order: PendingOrder, completion: @escaping (Bool, String) -> Void) {
         guard let uid = currentUser?.id else {
-            print("[MarkDone] ❌ currentUser is nil")
             completion(false, "Not logged in"); return
         }
         guard uid == order.chefID else {
-            print("[MarkDone] ❌ Auth mismatch: currentUser=\(uid) order.chefID=\(order.chefID)")
             completion(false, "Unauthorized"); return
         }
-        print("[MarkDone] Starting for orderID=\(order.id) total=\(order.total)")
 
         let orderRef  = db.collection("orders").document(order.id)
         let chefRef   = db.collection("users").document(uid)
@@ -623,31 +945,17 @@ class AppStore: ObservableObject {
 
         db.runTransaction({ transaction, errorPointer in
 
-            // 1. Read live order
             let orderSnap: DocumentSnapshot
             do { orderSnap = try transaction.getDocument(orderRef) }
-            catch let e as NSError {
-                print("[MarkDone] ❌ Failed to read order: \(e.localizedDescription)")
-                errorPointer?.pointee = e; return nil
-            }
+            catch let e as NSError { errorPointer?.pointee = e; return nil }
 
-            // 2. Read ledger (idempotency guard)
             let ledgerSnap: DocumentSnapshot
             do { ledgerSnap = try transaction.getDocument(ledgerRef) }
-            catch let e as NSError {
-                print("[MarkDone] ❌ Failed to read ledger: \(e.localizedDescription)")
-                errorPointer?.pointee = e; return nil
-            }
+            catch let e as NSError { errorPointer?.pointee = e; return nil }
 
-            // Already completed — idempotent no-op
-            if orderSnap.data()?["status"] as? String == "completed" {
-                print("[MarkDone] Order already completed, skipping")
-                return nil
-            }
+            if orderSnap.data()?["status"] as? String == "completed" { return nil }
 
-            // 3. Credit chef + write ledger (skip if already credited)
             if !ledgerSnap.exists && order.total > 0 {
-                print("[MarkDone] Crediting chef \(uid) with $\(order.total)")
                 transaction.updateData(["balance": FieldValue.increment(order.total)],
                                        forDocument: chefRef)
                 transaction.setData([
@@ -659,7 +967,6 @@ class AppStore: ObservableObject {
                 ], forDocument: ledgerRef)
             }
 
-            // 4. Mark order completed
             transaction.updateData([
                 "status":      "completed",
                 "completedAt": FieldValue.serverTimestamp()
@@ -668,11 +975,6 @@ class AppStore: ObservableObject {
 
         }) { _, error in
             DispatchQueue.main.async {
-                if let error = error {
-                    print("[MarkDone] ❌ Transaction failed: \(error.localizedDescription)")
-                } else {
-                    print("[MarkDone] ✅ Order \(order.id) completed, chef credited $\(order.total)")
-                }
                 completion(error == nil, error?.localizedDescription ?? "")
             }
         }

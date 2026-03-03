@@ -35,6 +35,7 @@ private struct CategoryPositionKey: PreferenceKey {
 struct MenuView: View {
     @EnvironmentObject var store: AppStore
     @State private var showAddDish          = false
+    @State private var showPickExisting     = false
     @State private var activeCategory: String? = nil
     @State private var showCategoryBar      = false
     @State private var isProgrammaticScroll = false
@@ -85,6 +86,15 @@ struct MenuView: View {
                                             VStack(spacing: 0) {
                                                 DishRow(dish: dish)
                                                     .padding(.horizontal, 16)
+                                                    .contextMenu {
+                                                        if dish.ownerID == store.currentUser?.id {
+                                                            Button(role: .destructive) {
+                                                                store.removeDishFromMenu(dish)
+                                                            } label: {
+                                                                Label("Remove from Menu", systemImage: "minus.circle")
+                                                            }
+                                                        }
+                                                    }
                                                 if dish.id != dishes.last?.id {
                                                     Divider().padding(.horizontal, 16)
                                                 }
@@ -133,7 +143,7 @@ struct MenuView: View {
                     }
                 }
             }
-            .navigationTitle("🍽 Our Menu")
+            .navigationTitle(store.currentMenu?.name ?? "Menu")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     VStack(alignment: .leading, spacing: 1) {
@@ -146,13 +156,35 @@ struct MenuView: View {
                     .padding(.leading, 4)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showAddDish = true } label: {
+                    SwiftUI.Menu {
+                        Button { showAddDish = true } label: {
+                            Label("Create New Dish", systemImage: "plus.circle")
+                        }
+                        Button { showPickExisting = true } label: {
+                            Label("Add from My Dishes", systemImage: "tray.and.arrow.down")
+                        }
+                    } label: {
                         Image(systemName: "plus")
                             .fontWeight(.semibold)
                     }
                 }
+                // Tap the navigation title to switch menus (iOS 16+ title menu)
+                ToolbarTitleMenu {
+                    ForEach(store.myMenus) { menu in
+                        Button {
+                            store.switchMenu(menu)
+                        } label: {
+                            Label(
+                                menu.name,
+                                systemImage: menu.id == store.currentMenu?.id
+                                    ? "checkmark.circle.fill" : "circle"
+                            )
+                        }
+                    }
+                }
             }
             .sheet(isPresented: $showAddDish) { AddDishView() }
+            .sheet(isPresented: $showPickExisting) { PickExistingDishView() }
         }
     }
 
@@ -230,6 +262,79 @@ struct MenuView: View {
             ?? positions.min(by: { $0.value < $1.value })?.key
         guard let active, active != activeCategory else { return }
         activeCategory = active
+    }
+}
+
+// MARK: - Pick Existing Dish
+
+struct PickExistingDishView: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+
+    private var availableDishes: [Dish] {
+        guard let menuID = store.currentMenu?.id else { return [] }
+        return store.myAllDishes.filter { $0.menuID != menuID }
+    }
+
+    var body: some View {
+        NavigationView {
+            Group {
+                if availableDishes.isEmpty {
+                    VStack(spacing: 14) {
+                        Spacer()
+                        Image(systemName: "tray")
+                            .font(.system(size: 60)).foregroundColor(.secondary)
+                        Text("No dishes to add")
+                            .font(.title2).fontWeight(.semibold)
+                        Text("All your dishes are already in this menu, or you haven't created any yet.")
+                            .font(.subheadline).foregroundColor(.secondary)
+                            .multilineTextAlignment(.center).padding(.horizontal, 40)
+                        Spacer()
+                    }
+                } else {
+                    List {
+                        ForEach(availableDishes) { dish in
+                            Button {
+                                store.moveDish(dish, toMenuID: store.currentMenu?.id ?? "") { ok, _ in
+                                    if ok { dismiss() }
+                                }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    DishThumbnail(imageURL: dish.imageURL, size: 52)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(dish.name)
+                                            .font(.subheadline).fontWeight(.medium)
+                                            .foregroundColor(.primary)
+                                        Text(String(format: "$%.2f", dish.price))
+                                            .font(.caption).foregroundColor(.secondary)
+                                        if let menuName = store.myMenus.first(where: { $0.id == dish.menuID })?.name {
+                                            Text("Currently in: \(menuName)")
+                                                .font(.caption2).foregroundColor(.blue)
+                                        } else if dish.menuID.isEmpty {
+                                            Text("Not in any menu")
+                                                .font(.caption2).foregroundColor(.secondary)
+                                        }
+                                    }
+                                    Spacer()
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundColor(.orange).font(.title3)
+                                }
+                                .padding(.vertical, 2)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .listStyle(.insetGrouped)
+                }
+            }
+            .navigationTitle("Add from My Dishes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
     }
 }
 
